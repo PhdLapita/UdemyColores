@@ -85,11 +85,64 @@ class ViewController: UIViewController {
             let delta = touch.location(in: imgKnob)
             let dist = CalculateDistanceFromCenter(delta)
             if touchIsInKnobWithDistance(distance: dist){
-                startTransform = imgKnob, startTransform
-                let center = CGPoint(x: imgKnob.bounds.size / 2, y: imgKnob.bounds.size.height / 2.0)
-                let 
+                startTransform = imgKnob.transform
+                let center = CGPoint(x: imgKnob.bounds.size.width / 2, y: imgKnob.bounds.size.height / 2.0)
+                let deltaX = delta.x - center.x
+                let deltaY = delta.y - center.y
+                deltaAngle = atan2(deltaY, deltaX)
+        
             }
         }
+        super.touchesBegan(touches, with: event)
     }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = touches.first{
+            if touch.view == imgKnob {
+                deltaAngle = nil
+                startTransform = nil
+            }
+        }
+        super.touchesEnded(touches, with: event)
+    }
+    
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = touches.first,
+        let  deltaAngle = deltaAngle,
+        let startTransform = startTransform,
+            touch.view == imgKnob{
+            let position = touch.location(in: imgKnob)
+            let dist = CalculateDistanceFromCenter(position)
+            if touchIsInKnobWithDistance(distance: dist){
+                //vamos a calcular el angulo segun arrastramos
+                let center  = CGPoint(x:  imgKnob.bounds.size.width / 2, y: imgKnob.bounds.size.height / 2)
+                let deltaX = position.x - center.x
+                let deltaY = position.y - center.y
+                let angle = atan2(deltaY, deltaX)
+                //  y calculamos la distancia con el anterior
+                let angleDif = deltaAngle - angle
+                let newTransform = startTransform.rotated(by: -angleDif)// para la imagen
+                let lastSetPointAngle = setPointAngle
+                //comprobamos  que no nos hemos pasado de los limites minimos y maximos 
+                //Al anterior le sumamos lo que nos hemos movido
+                setPointAngle = setPointAngle + Double(angleDif)
+                if setPointAngle >= minAngle && setPointAngle <= maxAngle{
+                    // si esta dentro  de los margenes ,  cambiamos el color  y le aplicamos la transformada
+                    view.backgroundColor = UIColor(hue: colorValueFromAngle(angle: setPointAngle), saturation: 0.75, brightness:0.75, alpha: 1.0)
+                    imgKnob.transform = newTransform
+                    self.startTransform = newTransform
+                }else{
+                    setPointAngle = lastSetPointAngle
+                }
+            }
+        }
+    super.touchesMoved(touches, with: event)
+    }
+    
+    private func colorValueFromAngle(angle:Double) ->CGFloat {
+        let hueValue = (angle - minAngle) * (360 / maxAngle - minAngle)
+        return CGFloat(hueValue / 360)
+    }
+    
 }
 
